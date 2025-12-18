@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solo Clinic - Professional HIMS</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@300;400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* EXTRA STYLES FOR NEW FEATURES */
+    .macro-bar { display: flex; gap: 8px; padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; overflow-x: auto; }
+    .macro-btn { font-size: 11px; padding: 4px 10px; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #475569; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .macro-btn:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+    
+    .rx-safety-banner { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 8px 12px; font-size: 12px; font-weight: 700; display: none; align-items: center; gap: 8px; border-radius: 6px; margin-bottom: 10px; animation: pulse-red 2s infinite; }
+    .rx-safety-banner.is-visible { display: flex; }
+    @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2); } 70% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
+  </style>
+</head>
+<body>
+
+<div id="appRoot" class="app-root">
+
+  <header class="top-bar">
+    <div class="top-left">
+      <div class="clinic-brand">
+        <div class="logo-icon">🩺</div>
+        <div class="brand-text">
+          <div id="clinicNameDisplay" class="clinic-name">Solo Clinic</div>
+          <div id="doctorNameDisplay" class="doctor-name">Dr. Yusuf Abbas</div>
+        </div>
+      </div>
+      <div class="search-container">
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="globalPatientSearch" placeholder="Search (Alt+S)..." autocomplete="off" />
+        </div>
+        <div id="patientSearchResults" class="search-results-dropdown" aria-hidden="true"></div>
+      </div>
+    </div>
+    
+    <div class="top-center">
+        <div class="live-clock-wrapper">
+            <span id="liveTime" class="clock-time">--:--</span>
+            <span id="liveDate" class="clock-date">--</span>
+        </div>
+    </div>
+
+    <div class="top-right">
+      <button id="themeToggleBtn" class="btn btn-icon" title="Toggle Dark Mode">🌙</button>
+      <button id="shortcutsBtn" class="btn btn-icon" title="Shortcuts">⌨️</button>
+      <div class="separator"></div>
+      <button id="newPatientBtn" class="btn btn-primary"><span>+</span> New</button>
+      <button id="saveVisitBtn" class="btn btn-success"><span>💾</span> Save</button>
+      <button id="printBtn" class="btn btn-dark"><span>🖨️</span> Print</button>
+      <button id="clinicSettingsBtn" class="btn btn-icon"><span>⚙️</span></button>
+    </div>
+  </header>
+
+  <div id="currentPatientHeader" class="patient-context-strip is-hidden">
+    <div class="context-left">
+      <div class="avatar-circle" id="headerAvatar">P</div>
+      <div class="patient-details">
+        <div class="patient-name-row">
+            <h2 id="headerName">Select a Patient</h2>
+            <span id="visitStatus" class="status-badge draft">Draft</span>
+        </div>
+        <div class="patient-meta">
+          <span id="headerUhid" class="meta-tag">UHID: --</span>
+          <span id="headerAgeSex">-- / --</span>
+          <span id="headerPhone">--</span>
+        </div>
+      </div>
+    </div>
+    <div class="context-right">
+       <button id="calcBtn" class="btn btn-ghost btn-small">🧮 BMI</button>
+       <button id="openHistoryBtn" class="btn btn-ghost btn-small">🕒 History</button>
+    </div>
+  </div>
+
+  <main class="main-layout">
+
+    <aside class="panel panel-left">
+      <div class="panel-header"><h3>Clinical Snapshot</h3></div>
+      <div class="panel-content scrollable">
+        <section class="form-section">
+          <label class="section-label">Vitals</label>
+          <div class="vitals-grid">
+            <div class="vital-input"><label>BP</label><input id="vitalBP" placeholder="120/80" /></div>
+            <div class="vital-input"><label>Pulse</label><input id="vitalPulse" placeholder="72" /></div>
+            <div class="vital-input"><label>Temp</label><input id="vitalTemp" placeholder="98.6" /></div>
+            <div class="vital-input"><label>SpO₂</label><input id="vitalSpO2" placeholder="99" /></div>
+            <div class="vital-input"><label>Wt</label><input id="vitalWeight" placeholder="Kg" /></div>
+            <div class="vital-input"><label>Ht</label><input id="vitalHeight" placeholder="cm" /></div>
+          </div>
+        </section>
+        <hr class="divider"/>
+        <section class="form-section">
+          <label class="section-label">Allergies ⚠️</label>
+          <textarea id="snapshotAllergies" class="warning-border" placeholder="Drug allergies..."></textarea>
+        </section>
+        <section class="form-section">
+          <label class="section-label">Chronic History</label>
+          <textarea id="snapshotChronic" placeholder="Diabetes, Hypertension..."></textarea>
+        </section>
+      </div>
+    </aside>
+
+    <section class="panel panel-center">
+      <div class="visit-date-bar">
+        <label>Visit Date:</label>
+        <input type="date" id="visitDate" />
+      </div>
+
+      <div class="clinical-tabs">
+        <div class="tab-header-row">
+          <button class="tab-btn active" data-tab="tab-co">Complaints</button>
+          <button class="tab-btn" data-tab="tab-exam">Exam</button>
+          <button class="tab-btn" data-tab="tab-dx">Diagnosis</button>
+          <button class="tab-btn" data-tab="tab-advice">Advice</button>
+          <button class="tab-btn" data-tab="tab-invest">Tests</button>
+        </div>
+        
+        <div class="tab-body-row">
+          
+          <div id="tab-co" class="tab-content active">
+            <div class="smart-input-wrapper">
+              <textarea id="coText" placeholder="Chief complaints..."></textarea>
+              <button class="mic-btn" onclick="App.toggleDictation('coText', this)">🎙️</button>
+            </div>
+          </div>
+
+          <div id="tab-exam" class="tab-content">
+            <div class="smart-input-wrapper">
+              <div class="macro-bar">
+                 <button class="macro-btn" onclick="App.insertMacro('examText', 'Chest Clear. S1 S2 Normal.')">🫁 Normal Chest</button>
+                 <button class="macro-btn" onclick="App.insertMacro('examText', 'Throat congested. Tonsils enlarged.')">👅 Sore Throat</button>
+                 <button class="macro-btn" onclick="App.insertMacro('examText', 'P/A: Soft, non-tender. Bowel sounds present.')">✋ Normal Abd</button>
+              </div>
+              <textarea id="examText" placeholder="On Examination..."></textarea>
+              <button class="mic-btn" onclick="App.toggleDictation('examText', this)">🎙️</button>
+            </div>
+          </div>
+
+          <div id="tab-dx" class="tab-content">
+            <div class="smart-input-wrapper">
+              <div class="macro-bar">
+                 <button class="macro-btn" onclick="App.insertMacro('dxText', 'Viral Pyrexia')">Viral Fever</button>
+                 <button class="macro-btn" onclick="App.insertMacro('dxText', 'Acute URI')">URI</button>
+                 <button class="macro-btn" onclick="App.insertMacro('dxText', 'Acute Gastritis')">Gastritis</button>
+                 <button class="macro-btn" onclick="App.insertMacro('dxText', 'Essential Hypertension')">HTN</button>
+              </div>
+              <textarea id="dxText" placeholder="Diagnosis..."></textarea>
+              <button class="mic-btn" onclick="App.toggleDictation('dxText', this)">🎙️</button>
+            </div>
+          </div>
+
+          <div id="tab-advice" class="tab-content">
+             <div class="smart-input-wrapper">
+              <div class="macro-bar">
+                 <button class="macro-btn" onclick="App.insertMacro('adviceText', 'Drink plenty of fluids.\nAvoid cold/oily food.')">General</button>
+                 <button class="macro-btn" onclick="App.insertMacro('adviceText', 'Salt restricted diet.\nRegular exercise.')">BP Care</button>
+              </div>
+              <textarea id="adviceText" placeholder="General Advice..."></textarea>
+              <button class="mic-btn" onclick="App.toggleDictation('adviceText', this)">🎙️</button>
+            </div>
+          </div>
+
+          <div id="tab-invest" class="tab-content">
+             <div class="smart-input-wrapper">
+              <textarea id="investText" placeholder="Labs (PT/INR)..."></textarea>
+              <button class="mic-btn" onclick="App.toggleDictation('investText', this)">🎙️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rx-module">
+        <div class="rx-header">
+          <div class="rx-title"><h3>💊 Rx Engine</h3><span id="editingIndicator" class="editing-badge is-hidden">Editing</span></div>
+          <div class="rx-actions">
+            <button id="aiSuggestBtn" class="btn btn-magic-ghost">✨ AI Suggest <span id="aiLoading" class="ai-loader is-hidden"></span></button>
+          </div>
+        </div>
+        
+        <div class="rx-input-container">
+            <div id="rxSafetyBanner" class="rx-safety-banner">
+                <span>⚠️ PATIENT HAS ALLERGIES:</span>
+                <span id="rxAllergyText"></span>
+            </div>
+
+            <div class="rx-grid-row">
+                <div class="input-group drug-group">
+                    <input id="rxDrugName" placeholder="Medicine Name..." autocomplete="off" />
+                    <div id="drugSuggestions" class="suggestions-dropdown" aria-hidden="true"></div>
+                </div>
+                <div class="input-group"><input id="rxDose" placeholder="Dose" /></div>
+                <div class="input-group"><input id="rxFrequency" placeholder="Freq" /></div>
+                <div class="input-group"><input id="rxDuration" placeholder="Dur" /></div>
+            </div>
+            <div class="rx-grid-row bottom">
+                <div class="input-group full"><input id="rxRemarks" placeholder="Remarks..." /></div>
+                <button id="addRxBtn" class="btn btn-primary btn-add-rx"><span id="addRxBtnText">Add</span></button>
+            </div>
+        </div>
+
+        <div class="rx-list-container">
+          <table class="rx-table">
+            <thead><tr><th width="5%">#</th><th width="35%">Medicine</th><th>Dose</th><th>Freq</th><th>Dur</th><th>Action</th></tr></thead>
+            <tbody id="rxTableBody"></tbody>
+          </table>
+          <div id="rxEmptyState" class="rx-empty">No medicines added. Start typing above.</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel panel-right">
+      <div class="preview-wrapper">
+        <div class="paper-sheet">
+          
+          <div class="paper-header">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <h1 id="previewClinicName">Vyron Health Care</h1>
+                    <h2 id="previewDoctorName">Dr Yusuf Abbas</h2>
+                </div>
+                <div style="text-align:right; font-size:12px; font-family:'Inter',sans-serif;">
+                    <div id="previewDatePrint"></div>
+                    <div id="previewTimePrint"></div>
+                </div>
+            </div>
+            <div class="paper-hr"></div>
+          </div>
+
+          <div class="paper-patient-info">
+            <div class="info-row">
+                <strong>Patient:</strong> <span id="previewPatientName">--</span>
+                <strong>Age:</strong> <span id="previewPatientAgeSex">--</span>
+                <strong>ID:</strong> <span id="previewPatientId">--</span>
+            </div>
+          </div>
+
+          <div class="paper-body">
+            <div id="previewVitalsRow" class="paper-section"><span class="paper-label">Vitals:</span> <span id="previewVitals"></span></div>
+            <div id="previewSectionCO" class="paper-section"><span class="paper-label">C/o:</span> <span id="previewCO"></span></div>
+            <div id="previewSectionExam" class="paper-section"><span class="paper-label">Observation:</span> <span id="previewExam"></span></div>
+            <div id="previewSectionInvest" class="paper-section"><span class="paper-label">Investigation:</span> <span id="previewInvest"></span></div>
+            
+            <div class="paper-section rx-section-print">
+              <div class="rx-symbol">Rx:</div>
+              <table class="paper-rx-table">
+                  <thead>
+                      <tr>
+                          <th class="col-type">Type</th>
+                          <th class="col-med">Medicine</th>
+                          <th class="col-dose">Dose</th>
+                          <th class="col-freq">Freq</th>
+                          <th class="col-dur">Dur</th>
+                          <th class="col-remark">Remarks</th>
+                      </tr>
+                  </thead>
+                  <tbody id="previewRxTable"></tbody>
+              </table>
+            </div>
+
+            <div id="previewSectionAdvice" class="paper-section"><span class="paper-label">Advice:</span> <span id="previewAdvice"></span></div>
+          </div>
+
+          <div class="paper-footer">
+            <div class="signature-box">
+                Signature:
+                <div class="sign-line"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <div id="newPatientModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header"><h2>New Patient</h2><button id="closeNewPatientBtn" class="close-btn">×</button></div>
+      <div class="modal-body">
+        <div class="form-row"><div class="form-group"><label>Name *</label><input id="regName" /></div></div>
+        <div class="form-row">
+            <div class="form-group"><label>Phone</label><input id="regPhone" /></div>
+            <div class="form-group small"><label>Age</label><input id="regAge" type="number" /></div>
+            <div class="form-group small"><label>Sex</label><select id="regSex"><option value="M">M</option><option value="F">F</option></select></div>
+        </div>
+        <div class="form-row"><div class="form-group"><label>Allergies</label><textarea id="regAllergies"></textarea></div></div>
+        <div class="form-row"><div class="form-group"><label>Conditions</label><textarea id="regChronic"></textarea></div></div>
+      </div>
+      <div class="modal-footer"><button id="saveNewPatientBtn" class="btn btn-primary">Register (Alt+S)</button></div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header"><h2>Settings</h2><button id="closeSettingsBtn" class="close-btn">×</button></div>
+      <div class="modal-body">
+        <label>Clinic Name</label><input id="settingClinicName" />
+        <label>Doctor Name</label><input id="settingDoctorName" />
+        <label>Address</label><textarea id="settingClinicAddress"></textarea>
+        <label>Footer Note</label><textarea id="settingFooterNote"></textarea>
+      </div>
+      <div class="modal-footer"><button id="saveSettingsBtn" class="btn btn-primary">Save Changes</button></div>
+    </div>
+  </div>
+
+  <div id="shortcutsModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card" style="width:400px;">
+      <div class="modal-header"><h2>Keyboard Shortcuts</h2><button id="closeShortcutsBtn" class="close-btn">×</button></div>
+      <div class="modal-body">
+        <ul style="list-style:none; padding:0; line-height:2;">
+            <li><b>Alt + N</b> : New Patient</li>
+            <li><b>Alt + S</b> : Search Patient</li>
+            <li><b>Ctrl + S</b> : Save Visit</li>
+            <li><b>Ctrl + P</b> : Print</li>
+            <li><b>Esc</b> : Close Modals</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div id="historyDrawer" class="drawer-overlay" aria-hidden="true">
+    <div class="drawer-content">
+      <div class="drawer-header"><h3>History</h3><button id="closeHistoryBtn" class="close-btn">×</button></div>
+      <div id="historyList" class="drawer-body-scroll"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="meds_all_combined.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
