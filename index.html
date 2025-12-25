@@ -8,14 +8,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@300;400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    /* EXTRA STYLES FOR NEW FEATURES */
-    .macro-bar { display: flex; gap: 8px; padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; overflow-x: auto; }
-    .macro-btn { font-size: 11px; padding: 4px 10px; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #475569; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-    .macro-btn:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+    /* INLINE STYLES FOR CRITICAL LAYOUT ELEMENTS (To ensure structure before CSS loads) */
+    body { opacity: 0; animation: fadeInPage 0.5s forwards; }
+    @keyframes fadeInPage { to { opacity: 1; } }
     
-    .rx-safety-banner { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 8px 12px; font-size: 12px; font-weight: 700; display: none; align-items: center; gap: 8px; border-radius: 6px; margin-bottom: 10px; animation: pulse-red 2s infinite; }
+    /* Specific styles for the new Macro and Safety features */
+    .macro-bar { display: flex; gap: 8px; padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; overflow-x: auto; scrollbar-width: none; }
+    .macro-btn { font-size: 11px; padding: 5px 12px; border-radius: 16px; border: 1px solid #cbd5e1; background: white; color: #475569; cursor: pointer; transition: all 0.2s; white-space: nowrap; font-weight: 500; }
+    .macro-btn:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; transform: translateY(-1px); }
+    
+    .rx-safety-banner { background: #fef2f2; border-left: 4px solid #ef4444; color: #b91c1c; padding: 12px 16px; font-size: 12px; font-weight: 600; display: none; align-items: center; justify-content: space-between; border-bottom: 1px solid #fecaca; animation: slideDown 0.3s ease-out; }
     .rx-safety-banner.is-visible { display: flex; }
-    @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2); } 70% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
+    
+    @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   </style>
 </head>
 <body>
@@ -34,7 +39,7 @@
       <div class="search-container">
         <div class="search-wrapper">
           <span class="search-icon">🔍</span>
-          <input type="text" id="globalPatientSearch" placeholder="Search (Alt+S)..." autocomplete="off" />
+          <input type="text" id="globalPatientSearch" placeholder="Search Patient (Alt+S)..." autocomplete="off" />
         </div>
         <div id="patientSearchResults" class="search-results-dropdown" aria-hidden="true"></div>
       </div>
@@ -74,7 +79,7 @@
       </div>
     </div>
     <div class="context-right">
-       <button id="calcBtn" class="btn btn-ghost btn-small">🧮 BMI</button>
+       <button id="calcBtn" class="btn btn-ghost btn-small">🧮 BMI Calc</button>
        <button id="openHistoryBtn" class="btn btn-ghost btn-small">🕒 History</button>
     </div>
   </div>
@@ -91,13 +96,13 @@
             <div class="vital-input"><label>Pulse</label><input id="vitalPulse" placeholder="72" /></div>
             <div class="vital-input"><label>Temp</label><input id="vitalTemp" placeholder="98.6" /></div>
             <div class="vital-input"><label>SpO₂</label><input id="vitalSpO2" placeholder="99" /></div>
-            <div class="vital-input"><label>Wt</label><input id="vitalWeight" placeholder="Kg" /></div>
-            <div class="vital-input"><label>Ht</label><input id="vitalHeight" placeholder="cm" /></div>
+            <div class="vital-input"><label>Wt (kg)</label><input id="vitalWeight" placeholder="Kg" /></div>
+            <div class="vital-input"><label>Ht (cm)</label><input id="vitalHeight" placeholder="cm" /></div>
           </div>
         </section>
         <hr class="divider"/>
         <section class="form-section">
-          <label class="section-label">Allergies ⚠️</label>
+          <label class="section-label" style="color:#dc2626;">Allergies ⚠️</label>
           <textarea id="snapshotAllergies" class="warning-border" placeholder="Drug allergies..."></textarea>
         </section>
         <section class="form-section">
@@ -109,8 +114,13 @@
 
     <section class="panel panel-center">
       <div class="visit-date-bar">
-        <label>Visit Date:</label>
-        <input type="date" id="visitDate" />
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label>Visit Date:</label>
+          <input type="date" id="visitDate" />
+        </div>
+        <button id="aiSuggestBtn" class="btn btn-magic-ghost" style="margin-left:auto;">
+           ✨ AI Suggest <span id="aiLoading" class="ai-loader is-hidden"></span>
+        </button>
       </div>
 
       <div class="clinical-tabs">
@@ -118,8 +128,9 @@
           <button class="tab-btn active" data-tab="tab-co">Complaints</button>
           <button class="tab-btn" data-tab="tab-exam">Exam</button>
           <button class="tab-btn" data-tab="tab-dx">Diagnosis</button>
-          <button class="tab-btn" data-tab="tab-advice">Advice</button>
+          <button class="tab-btn" data-tab="tab-rx">💊 Medicines</button>
           <button class="tab-btn" data-tab="tab-invest">Tests</button>
+          <button class="tab-btn" data-tab="tab-advice">Advice</button>
         </div>
         
         <div class="tab-body-row">
@@ -137,6 +148,7 @@
                  <button class="macro-btn" onclick="App.insertMacro('examText', 'Chest Clear. S1 S2 Normal.')">🫁 Normal Chest</button>
                  <button class="macro-btn" onclick="App.insertMacro('examText', 'Throat congested. Tonsils enlarged.')">👅 Sore Throat</button>
                  <button class="macro-btn" onclick="App.insertMacro('examText', 'P/A: Soft, non-tender. Bowel sounds present.')">✋ Normal Abd</button>
+                 <button class="macro-btn" onclick="App.insertMacro('examText', 'CNS: Conscious, Oriented. No focal deficit.')">🧠 Normal CNS</button>
               </div>
               <textarea id="examText" placeholder="On Examination..."></textarea>
               <button class="mic-btn" onclick="App.toggleDictation('examText', this)">🎙️</button>
@@ -150,21 +162,96 @@
                  <button class="macro-btn" onclick="App.insertMacro('dxText', 'Acute URI')">URI</button>
                  <button class="macro-btn" onclick="App.insertMacro('dxText', 'Acute Gastritis')">Gastritis</button>
                  <button class="macro-btn" onclick="App.insertMacro('dxText', 'Essential Hypertension')">HTN</button>
+                 <button class="macro-btn" onclick="App.insertMacro('dxText', 'T2 Diabetes Mellitus')">Diabetes</button>
               </div>
               <textarea id="dxText" placeholder="Diagnosis..."></textarea>
               <button class="mic-btn" onclick="App.toggleDictation('dxText', this)">🎙️</button>
             </div>
           </div>
 
-          <div id="tab-advice" class="tab-content">
-             <div class="smart-input-wrapper">
-              <div class="macro-bar">
-                 <button class="macro-btn" onclick="App.insertMacro('adviceText', 'Drink plenty of fluids.\nAvoid cold/oily food.')">General</button>
-                 <button class="macro-btn" onclick="App.insertMacro('adviceText', 'Salt restricted diet.\nRegular exercise.')">BP Care</button>
-              </div>
-              <textarea id="adviceText" placeholder="General Advice..."></textarea>
-              <button class="mic-btn" onclick="App.toggleDictation('adviceText', this)">🎙️</button>
-            </div>
+          <div id="tab-rx" class="tab-content">
+             <div class="rx-tab-layout">
+                
+                <div id="rxSafetyBanner" class="rx-safety-banner">
+                    <div class="banner-content">
+                        <span class="banner-icon">🤧</span>
+                        <div class="banner-text">
+                            <span class="banner-title">Allergy Alert</span>
+                            <span id="rxAllergyText" class="banner-detail"></span>
+                        </div>
+                    </div>
+                    <button id="dismissAllergyBtn" class="btn-dismiss-alert">Okay, Got it</button>
+                </div>
+
+                <div class="rx-input-deck">
+                    <div class="rx-quick-chips-row">
+                        <span class="chip-label">Form:</span>
+                        <button class="chip-btn" onclick="App.setRxForm('Tab.')">💊 Tab</button>
+                        <button class="chip-btn" onclick="App.setRxForm('Cap.')">💊 Cap</button>
+                        <button class="chip-btn" onclick="App.setRxForm('Syr.')">🥄 Syr</button>
+                        <button class="chip-btn" onclick="App.setRxForm('Inj.')">💉 Inj</button>
+                        <button class="chip-btn" onclick="App.setRxForm('Oint.')">🧴 Oint</button>
+                        <button class="chip-btn" onclick="App.setRxForm('Drops')">💧 Drops</button>
+                    </div>
+
+                    <div class="rx-grid-row">
+                        <div class="input-group drug-group">
+                            <label>Medicine Name</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔍</span>
+                                <input id="rxDrugName" placeholder="Search brand or generic..." autocomplete="off" />
+                            </div>
+                            <div id="drugSuggestions" class="suggestions-dropdown" aria-hidden="true"></div>
+                        </div>
+                        <div class="input-group small"><label>Dose</label><input id="rxDose" placeholder="500mg" /></div>
+                        <div class="input-group small">
+                            <label>Freq</label>
+                            <input id="rxFrequency" placeholder="BD" list="freqList" />
+                            <datalist id="freqList">
+                                <option value="OD">Once a day</option>
+                                <option value="BD">Twice a day</option>
+                                <option value="TDS">Thrice a day</option>
+                                <option value="SOS">As needed</option>
+                                <option value="HS">At night</option>
+                            </datalist>
+                        </div>
+                        <div class="input-group small"><label>Duration</label><input id="rxDuration" placeholder="5 Days" /></div>
+                    </div>
+                    
+                    <div class="rx-grid-row bottom">
+                        <div class="input-group full">
+                            <label>Instructions / Remarks</label>
+                            <input id="rxRemarks" placeholder="e.g. After food..." />
+                            <div class="quick-duration-bar">
+                                <button class="dur-chip" onclick="App.setRxDuration('3 Days')">3D</button>
+                                <button class="dur-chip" onclick="App.setRxDuration('5 Days')">5D</button>
+                                <button class="dur-chip" onclick="App.setRxDuration('7 Days')">7D</button>
+                                <button class="dur-chip" onclick="App.setRxDuration('15 Days')">15D</button>
+                                <button class="dur-chip" onclick="App.setRxDuration('1 Mon')">1M</button>
+                            </div>
+                        </div>
+                        <div class="rx-action-group">
+                            <span id="editingIndicator" class="editing-badge is-hidden">✏️ Editing</span>
+                            <button id="addRxBtn" class="btn btn-primary btn-add-rx">
+                                <span class="plus-icon">+</span> <span id="addRxBtnText">Add Med</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rx-list-wrapper">
+                  <table class="rx-table cute-table">
+                    <thead><tr><th width="40">#</th><th>Medicine Detail</th><th>Dose</th><th>Timing</th><th>Dur</th><th width="60"></th></tr></thead>
+                    <tbody id="rxTableBody"></tbody>
+                  </table>
+                  <div id="rxEmptyState" class="rx-empty">
+                      <div class="empty-icon">💊</div>
+                      <div class="empty-text">Prescription is empty</div>
+                      <div class="empty-sub">Search above to add medicines</div>
+                  </div>
+                </div>
+
+             </div>
           </div>
 
           <div id="tab-invest" class="tab-content">
@@ -173,44 +260,19 @@
               <button class="mic-btn" onclick="App.toggleDictation('investText', this)">🎙️</button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="rx-module">
-        <div class="rx-header">
-          <div class="rx-title"><h3>💊 Rx Engine</h3><span id="editingIndicator" class="editing-badge is-hidden">Editing</span></div>
-          <div class="rx-actions">
-            <button id="aiSuggestBtn" class="btn btn-magic-ghost">✨ AI Suggest <span id="aiLoading" class="ai-loader is-hidden"></span></button>
+          <div id="tab-advice" class="tab-content">
+             <div class="smart-input-wrapper">
+              <div class="macro-bar">
+                 <button class="macro-btn" onclick="App.insertMacro('adviceText', 'Drink plenty of fluids.\nAvoid cold/oily food.')">General</button>
+                 <button class="macro-btn" onclick="App.insertMacro('adviceText', 'Salt restricted diet.\nRegular exercise.')">BP Care</button>
+                 <button class="macro-btn" onclick="App.insertMacro('adviceText', 'Review after 3 days.')">Review</button>
+              </div>
+              <textarea id="adviceText" placeholder="General Advice..."></textarea>
+              <button class="mic-btn" onclick="App.toggleDictation('adviceText', this)">🎙️</button>
+            </div>
           </div>
-        </div>
-        
-        <div class="rx-input-container">
-            <div id="rxSafetyBanner" class="rx-safety-banner">
-                <span>⚠️ PATIENT HAS ALLERGIES:</span>
-                <span id="rxAllergyText"></span>
-            </div>
 
-            <div class="rx-grid-row">
-                <div class="input-group drug-group">
-                    <input id="rxDrugName" placeholder="Medicine Name..." autocomplete="off" />
-                    <div id="drugSuggestions" class="suggestions-dropdown" aria-hidden="true"></div>
-                </div>
-                <div class="input-group"><input id="rxDose" placeholder="Dose" /></div>
-                <div class="input-group"><input id="rxFrequency" placeholder="Freq" /></div>
-                <div class="input-group"><input id="rxDuration" placeholder="Dur" /></div>
-            </div>
-            <div class="rx-grid-row bottom">
-                <div class="input-group full"><input id="rxRemarks" placeholder="Remarks..." /></div>
-                <button id="addRxBtn" class="btn btn-primary btn-add-rx"><span id="addRxBtnText">Add</span></button>
-            </div>
-        </div>
-
-        <div class="rx-list-container">
-          <table class="rx-table">
-            <thead><tr><th width="5%">#</th><th width="35%">Medicine</th><th>Dose</th><th>Freq</th><th>Dur</th><th>Action</th></tr></thead>
-            <tbody id="rxTableBody"></tbody>
-          </table>
-          <div id="rxEmptyState" class="rx-empty">No medicines added. Start typing above.</div>
         </div>
       </div>
     </section>
@@ -220,57 +282,88 @@
         <div class="paper-sheet">
           
           <div class="paper-header">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div>
-                    <h1 id="previewClinicName">Vyron Health Care</h1>
-                    <h2 id="previewDoctorName">Dr Yusuf Abbas</h2>
-                </div>
-                <div style="text-align:right; font-size:12px; font-family:'Inter',sans-serif;">
-                    <div id="previewDatePrint"></div>
-                    <div id="previewTimePrint"></div>
+            <div class="header-logo-row">
+                <div class="logo-box">🩺</div> <div class="clinic-info-box">
+                    <h1 id="previewClinicName">SOLO CLINIC</h1>
+                    <h2 id="previewDoctorName">Dr. Yusuf Abbas</h2>
+                    <p id="previewClinicAddress" class="clinic-addr">123 Health St, Medical District</p>
                 </div>
             </div>
-            <div class="paper-hr"></div>
+            <div class="paper-hr-thick"></div>
           </div>
 
-          <div class="paper-patient-info">
-            <div class="info-row">
-                <strong>Patient:</strong> <span id="previewPatientName">--</span>
-                <strong>Age:</strong> <span id="previewPatientAgeSex">--</span>
-                <strong>ID:</strong> <span id="previewPatientId">--</span>
+          <div class="paper-patient-grid">
+            <div class="meta-item">
+                <span class="meta-label">Patient Name:</span>
+                <span id="previewPatientName" class="meta-val">--</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Age / Sex:</span>
+                <span id="previewPatientAgeSex" class="meta-val">--</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Visit ID:</span>
+                <span id="previewPatientId" class="meta-val">--</span>
+            </div>
+            <div class="meta-item align-right">
+                <span class="meta-label">Date:</span>
+                <span id="previewDatePrint" class="meta-val">--</span>
             </div>
           </div>
+          <div class="paper-hr-thin"></div>
 
           <div class="paper-body">
-            <div id="previewVitalsRow" class="paper-section"><span class="paper-label">Vitals:</span> <span id="previewVitals"></span></div>
-            <div id="previewSectionCO" class="paper-section"><span class="paper-label">C/o:</span> <span id="previewCO"></span></div>
-            <div id="previewSectionExam" class="paper-section"><span class="paper-label">Observation:</span> <span id="previewExam"></span></div>
-            <div id="previewSectionInvest" class="paper-section"><span class="paper-label">Investigation:</span> <span id="previewInvest"></span></div>
+            
+            <div id="previewVitalsRow" class="paper-vitals-box">
+                <span class="vitals-title">VITALS:</span>
+                <span id="previewVitals" class="vitals-content"></span>
+            </div>
+
+            <div id="previewSectionCO" class="paper-section">
+                <div class="paper-label">Chief Complaints:</div> 
+                <span id="previewCO"></span>
+            </div>
+            <div id="previewSectionExam" class="paper-section">
+                <div class="paper-label">Examination:</div> 
+                <span id="previewExam"></span>
+            </div>
+            <div id="previewSectionDx" class="paper-section">
+                <div class="paper-label">Diagnosis:</div> 
+                <span id="previewDx" style="font-weight:bold;"></span>
+            </div>
+            <div id="previewSectionInvest" class="paper-section">
+                <div class="paper-label">Investigations:</div> 
+                <span id="previewInvest"></span>
+            </div>
             
             <div class="paper-section rx-section-print">
-              <div class="rx-symbol">Rx:</div>
+              <div class="rx-symbol">℞</div>
               <table class="paper-rx-table">
                   <thead>
                       <tr>
-                          <th class="col-type">Type</th>
-                          <th class="col-med">Medicine</th>
+                          <th class="col-type">#</th>
+                          <th class="col-med">Medicine Name</th>
                           <th class="col-dose">Dose</th>
-                          <th class="col-freq">Freq</th>
+                          <th class="col-freq">Timing</th>
                           <th class="col-dur">Dur</th>
-                          <th class="col-remark">Remarks</th>
+                          <th class="col-remark">Instruction</th>
                       </tr>
                   </thead>
                   <tbody id="previewRxTable"></tbody>
               </table>
             </div>
 
-            <div id="previewSectionAdvice" class="paper-section"><span class="paper-label">Advice:</span> <span id="previewAdvice"></span></div>
+            <div id="previewSectionAdvice" class="paper-section advice-box">
+                <div class="paper-label">Advice / Follow-up:</div> 
+                <span id="previewAdvice"></span>
+            </div>
           </div>
 
           <div class="paper-footer">
+            <div class="footer-note" id="previewFooterNote">Get well soon!</div>
             <div class="signature-box">
-                Signature:
-                <div class="sign-line"></div>
+                <div class="sign-img"></div>
+                <div class="sign-label">Doctor's Signature</div>
             </div>
           </div>
 
